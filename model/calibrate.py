@@ -23,31 +23,41 @@ def calibrate(base_state: dict,
               cal_gaze: torch.Tensor,
               steps: int = 60,
               lr: float = 1e-3,
+              weight_decay: float = 1e-3,
               device: str = "cpu") -> dict:
-    """Few-shot fine-tune the drift adapter (+heads) on one user's trials.
+    """Few-shot fine-tune the drift adapter on one user's trials.
+
+    Only the small **drift adapter** is trained — the backbone AND the output
+    heads stay frozen. Training the heads on ~10 examples overfits and can
+    diverge; restricting to the adapter (plus mild weight decay) keeps few-shot
+    calibration stable, and matches the design: the adapter is the per-user part.
 
     Parameters
     ----------
-    base_state : shared base-model state_dict.
-    cal_X      : (n, 2, L) the user's saccade windows (input-normalised).
-    cal_gaze   : (n, 2) standardised gaze targets for those windows.
-    steps      : gradient steps (report default 60).
+    base_state   : shared base-model state_dict.
+    cal_X        : (n, 2, L) the user's saccade windows (input-normalised).
+    cal_gaze     : (n, 2) standardised gaze targets for those windows.
+    steps        : gradient steps (report default 60).
+    weight_decay : L2 regularisation on the adapter (the report's "mild
+                   regularisation" to prevent overfitting).
 
     Returns the personalised state_dict.
     """
     net = GazeNet().to(device)
     net.load_state_dict(base_state)
-    net.eval()               # keep frozen BatchNorm on its running stats
-    net.freeze_backbone()    # only the adapter + heads remain trainable
+    net.eval()                                   # frozen BatchNorm on running stats
+    for p in net.parameters():
+        p.requires_grad_(False)
+    for p in net.drift_adapter.parameters():     # only the drift adapter adapts
+        p.requires_grad_(True)
 
-    params = [p for p in net.parameters() if p.requires_grad]
-    opt = torch.optim.Adam(params, lr=lr)
+    opt = torch.optim.Adam(net.drift_adapter.parameters(), lr=lr, weight_decay=weight_decay)
 
     X, g = cal_X.to(device), cal_gaze.to(device)
     for _ in range(steps):
         opt.zero_grad()
         gaze_pred, _blink = net(X)
-        loss = F.mse_loss(gaze_pred, g)   # drift shows up in gaze; calibrate on gaze
+        loss = F.mse_loss(gaze_pred, g)          # drift shows up in gaze; calibrate on gaze
         loss.backward()
         opt.step()
 
@@ -55,8 +65,7 @@ def calibrate(base_state: dict,
 
 
 def n_trainable(base_state: dict, device: str = "cpu") -> int:
-    """How many parameters calibration actually updates (adapter + heads)."""
+    """How many parameters calibration actually updates (the drift adapter)."""
     net = GazeNet().to(device)
     net.load_state_dict(base_state)
-    net.freeze_backbone()
-    return sum(p.numel() for p in net.parameters() if p.requires_grad)
+    return sum(p.numel() for p in net.drift_adapter.parameters())

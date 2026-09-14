@@ -17,17 +17,25 @@ test the report demands.
 The ~6.8° train-vs-new gap is the person-specific baseline drift the shared model
 can't know in advance — the problem calibration exists to close.
 
-**After per-user calibration (~10 trials, only the 8.7k-param adapter+heads, backbone frozen):**
+**After per-user calibration (~10 trials, only the 8.4k-param drift adapter — backbone and heads frozen, with mild weight decay to prevent overfitting):**
 
 | Metric (never-seen) | Before | After | Change |
 |---------------------|--------|-------|--------|
-| Gaze error, right after calibration (realistic) | 6.4° | **4.5°** | **−30%**, both users |
-| — S5 | 5.5° | 4.1° | −26% |
-| — S6 | 7.2° | 4.9° | −33% |
-| Gaze error, full ~20-min session (conservative) | 10.3° | 9.0° | −12% |
+| Gaze error, right after calibration (realistic) | 6.4° | **4.2°** | **−34%**, both users |
+| — S5 | 5.5° | 3.8° | −30% |
+| — S6 | 7.2° | 4.5° | −38% |
+| Gaze error, full ~20-min session (conservative) | 10.3° | 8.7° | −16% |
 
-Calibration reliably cuts new-user error ~30% in the near term. Confirmed **live**
-through the deployed stack (S5, streamed): **4.94° → 4.11°**.
+Confirmed **live** through the deployed stack (a never-seen subject streamed over
+WebSocket) with ~6 ms prediction latency.
+
+**Leave-one-subject-out (all 6 subjects, fair 80-epoch training):** rotating every
+subject as the never-seen new user, near-term error improves **7.09° → 6.30° (−11%)**,
+helping **5 of 6** subjects. This is more modest than the single fixed split (−34%)
+because with only 6 subjects one atypical subject swings the mean, and outcomes are
+base-dependent. The mechanism clearly works (large, consistent wins on subjects with
+real drift, e.g. S3/S4 −24% to −32%), but a firm *uniform* claim needs more subjects.
+See `RESULTS.md` §4.
 
 ## 2. The cloud result
 

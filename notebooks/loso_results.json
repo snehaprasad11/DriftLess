@@ -1,0 +1,64 @@
+{
+  "folds": [
+    {
+      "held_out": "S1",
+      "base_near": 10.65,
+      "aft_near": 9.98,
+      "base_full": 13.46,
+      "aft_full": 13.66,
+      "blink_acc": 0.34,
+      "secs": 433
+    },
+    {
+      "held_out": "S2",
+      "base_near": 5.52,
+      "aft_near": 5.4,
+      "base_full": 8.04,
+      "aft_full": 21.36,
+      "blink_acc": 0.786,
+      "secs": 332
+    },
+    {
+      "held_out": "S3",
+      "base_near": 8.52,
+      "aft_near": 6.47,
+      "base_full": 7.73,
+      "aft_full": 10.97,
+      "blink_acc": 0.86,
+      "secs": 352
+    },
+    {
+      "held_out": "S4",
+      "base_near": 8.11,
+      "aft_near": 5.54,
+      "base_full": 9.29,
+      "aft_full": 12.23,
+      "blink_acc": 0.93,
+      "secs": 530
+    },
+    {
+      "held_out": "S5",
+      "base_near": 5.12,
+      "aft_near": 5.88,
+      "base_full": 10.84,
+      "aft_full": 12.57,
+      "blink_acc": 0.753,
+      "secs": 600
+    },
+    {
+      "held_out": "S6",
+      "base_near": 4.64,
+      "aft_near": 4.5,
+      "base_full": 6.34,
+      "aft_full": 6.12,
+      "blink_acc": 0.979,
+      "secs": 651
+    }
+  ],
+  "mean_base_near": 7.09,
+  "mean_aft_near": 6.3,
+  "improvement_pct": 11.3,
+  "mean_blink_acc": 0.775,
+  "epochs": 80,
+  "total_secs": 2899
+}
