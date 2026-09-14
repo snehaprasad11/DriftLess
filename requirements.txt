@@ -1,0 +1,28 @@
+# DriftLess — pinned dependencies (Python 3.12)
+#
+# WHY pinned: the report's rule is "laptop == Colab == cloud". Exact versions
+# mean the environment resolves identically everywhere, so there are no
+# "works on my machine" surprises when we train on Colab (Phase 3) or deploy
+# to the cloud (Phase 6). When you train on Colab, check its torch version and
+# align this pin if it differs.
+#
+# Install (from the project root, with .venv active):
+#   pip install -r requirements.txt
+
+# --- Machine learning core -------------------------------------------------
+torch==2.5.1              # the gaze/blink neural network (CPU build locally; GPU on Colab)
+numpy==2.1.3              # array math, the base type everything else speaks
+scipy==1.14.1             # light signal filtering (Phase 2 preprocessing)
+scikit-learn==1.5.2       # metrics + leave-one-subject-out splits (Phase 2 & eval)
+
+# --- Data handling & exploration -------------------------------------------
+pandas==2.2.3             # load/inspect the EOG dataset tables
+matplotlib==3.9.2         # plot raw trials so we can see saccades/blinks/drift (Phase 1)
+jupyterlab==4.3.4         # the notebooks/ workspace
+
+# --- Cloud services (Phase 5+) ---------------------------------------------
+fastapi==0.115.6          # the API gateway + inference service
+uvicorn[standard]==0.32.1 # ASGI server that runs the FastAPI apps
+redis==5.2.1              # client for the calibration job queue
+boto3==1.35.71            # S3-compatible object storage client (the model registry)
+websockets==14.1          # live EOG streaming between client and gateway (Phase 7)

@@ -1,0 +1,50 @@
+name: CI
+
+# Build -> test -> (deploy) on every push/PR. Turns loose scripts into a real
+# MLOps pipeline: reproducible tests and container builds gate every change.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    name: Tests (pytest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install dependencies (CPU torch)
+        run: |
+          python -m pip install --upgrade pip
+          pip install torch==2.5.1 --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements-dev.txt
+      - name: Run tests
+        run: pytest tests/ -q
+
+  build:
+    name: Build service images
+    needs: test          # only build if tests pass
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build inference / gateway / worker images
+        run: |
+          docker build -f inference/Dockerfile -t driftless-inference .
+          docker build -f gateway/Dockerfile   -t driftless-gateway .
+          docker build -f worker/Dockerfile    -t driftless-worker .
+
+  # deploy:
+  #   name: Deploy inference (serverless)
+  #   needs: build
+  #   runs-on: ubuntu-latest
+  #   if: github.ref == 'refs/heads/main'
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     # e.g. trigger a Render deploy hook, or `gcloud run deploy` — see DEPLOY.md.
+  #     # Gate on repository secrets so forks/PRs never deploy:
+  #     - run: curl -fsSL -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"

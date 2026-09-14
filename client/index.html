@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>DriftLess — Live Gaze Demo</title>
+<style>
+  :root { --bg:#0f1c24; --panel:#16262f; --teal:#2a9d8f; --red:#bc4b51; --amber:#f4a259; --ink:#e8eef0; --mut:#8fa6ad; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:14px/1.5 system-ui,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--ink); }
+  header { padding:18px 22px; border-bottom:1px solid #24343d; }
+  h1 { margin:0; font-size:20px; } h1 small { color:var(--mut); font-weight:400; font-size:13px; }
+  .wrap { display:flex; gap:22px; padding:22px; flex-wrap:wrap; }
+  canvas { background:var(--panel); border-radius:10px; }
+  .panel { min-width:260px; flex:1; }
+  .row { display:flex; justify-content:space-between; padding:7px 0; border-bottom:1px solid #22323b; }
+  .row b { font-variant-numeric:tabular-nums; }
+  .pill { display:inline-block; padding:2px 10px; border-radius:20px; font-weight:600; font-size:12px; }
+  .base { background:#5a3a3f; color:#ffd7db; } .personal { background:#1f4a44; color:#c9f3ec; }
+  button { background:var(--teal); color:#04110e; border:0; border-radius:8px; padding:10px 16px;
+           font-weight:700; cursor:pointer; margin:6px 6px 0 0; }
+  button:disabled { opacity:.5; cursor:default; }
+  button.sec { background:#2b3d46; color:var(--ink); }
+  .status { color:var(--mut); margin-top:10px; min-height:20px; }
+  .legend span { margin-right:14px; } .dot { display:inline-block; width:10px; height:10px; border-radius:50%; vertical-align:middle; margin-right:4px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>DriftLess <small>— live EOG → gaze, with per-user calibration</small></h1>
+</header>
+<div class="wrap">
+  <div>
+    <canvas id="cv" width="420" height="420"></canvas>
+    <div class="legend" style="margin-top:8px">
+      <span><i class="dot" style="background:var(--amber)"></i>true target</span>
+      <span><i class="dot" style="background:var(--teal)"></i>predicted gaze</span>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="row"><span>Model serving</span><b><span id="model" class="pill base">—</span></b></div>
+    <div class="row"><span>Round-trip latency</span><b><span id="lat">—</span> ms</b></div>
+    <div class="row"><span>Avg latency (warm)</span><b><span id="avglat">—</span> ms</b></div>
+    <div class="row"><span>Gaze error (this window)</span><b><span id="err">—</span>°</b></div>
+    <div class="row"><span>Avg error — <span class="pill base">base</span></span><b><span id="errbase">—</span>°</b></div>
+    <div class="row"><span>Avg error — <span class="pill personal">personal</span></span><b><span id="errpers">—</span>°</b></div>
+    <div class="row"><span>Windows streamed</span><b><span id="count">0</span></b></div>
+    <div style="margin-top:14px">
+      <button id="start">▶ Start streaming</button>
+      <button id="cal" class="sec" disabled>✦ Calibrate this user</button>
+    </div>
+    <div class="status" id="status">Loading replay…</div>
+  </div>
+</div>
+<script>
+const DEG = 25;                    // canvas spans ±25°
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+const S = cv.width / (2*DEG), CX = cv.width/2, CY = cv.height/2;
+const $ = id => document.getElementById(id);
+const px = (gx,gy) => [CX + gx*S, CY - gy*S];
+
+let data=null, userId='demo_'+Math.random().toString(36).slice(2,8), ws=null, streaming=false;
+let calibrated=false, calibrating=false;
+const lat=[], eBase=[], ePers=[];
+const avg = a => a.length ? (a.reduce((x,y)=>x+y,0)/a.length) : null;
+
+function grid(){
+  ctx.clearRect(0,0,cv.width,cv.height);
+  ctx.strokeStyle='#24343d'; ctx.lineWidth=1;
+  for(let d=-DEG; d<=DEG; d+=5){ let [x]=px(d,0),[,y]=px(0,d);
+    ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,cv.height);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(cv.width,y);ctx.stroke(); }
+  ctx.strokeStyle='#3a505a'; ctx.beginPath();ctx.moveTo(CX,0);ctx.lineTo(CX,cv.height);
+  ctx.moveTo(0,CY);ctx.lineTo(cv.width,CY);ctx.stroke();
+}
+function draw(truth, pred){
+  grid();
+  const [tx,ty]=px(truth[0],truth[1]), [pxx,pyy]=px(pred.x,pred.y);
+  ctx.strokeStyle='#556'; ctx.beginPath();ctx.moveTo(tx,ty);ctx.lineTo(pxx,pyy);ctx.stroke();
+  ctx.strokeStyle='#f4a259'; ctx.lineWidth=2; ctx.beginPath();ctx.arc(tx,ty,9,0,7);ctx.stroke();
+  ctx.fillStyle = calibrated ? '#2a9d8f' : '#bc4b51'; ctx.beginPath();ctx.arc(pxx,pyy,7,0,7);ctx.fill();
+}
+function fmt(v){ return v==null?'—':v.toFixed(2); }
+function refresh(){
+  $('avglat').textContent = fmt(avg(lat));
+  $('errbase').textContent = fmt(avg(eBase));
+  $('errpers').textContent = fmt(avg(ePers));
+}
+
+fetch('demo_windows.json').then(r=>r.json()).then(d=>{
+  data=d; $('status').textContent = `Loaded ${d.items.length} windows from subject ${d.subject}. Press Start.`;
+});
+
+function connect(){
+  ws = new WebSocket((location.protocol==='https:'?'wss':'ws')+'://'+location.host+'/ws');
+  return new Promise(res=>{ ws.onopen=()=>res(); ws.onmessage=onMsg; });
+}
+const pendingQ=[];   // FIFO of truths awaiting their prediction (WS preserves order)
+function onMsg(ev){
+  const m = JSON.parse(ev.data); if(m.error){ $('status').textContent='error: '+m.error; return; }
+  const truth = pendingQ.shift(); if(!truth) return;
+  $('model').textContent = m.model;
+  $('model').className = 'pill '+(m.model==='personal'?'personal':'base');
+  calibrated = (m.model==='personal');
+  $('lat').textContent = m.latency_ms; lat.push(m.latency_ms); if(lat.length>30) lat.shift();
+  const e = Math.hypot(m.gaze.x-truth.gaze[0], m.gaze.y-truth.gaze[1]);
+  $('err').textContent = e.toFixed(2);
+  (calibrated?ePers:eBase).push(e);
+  draw(truth.gaze, m.gaze);
+  refresh();
+}
+
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+async function loop(){
+  const test = data.items.filter(it=>it.trial>=data.n_cal_trials);
+  let i=0;
+  while(streaming){
+    const it = test[i % test.length]; i++;
+    pendingQ.push(it);
+    ws.send(JSON.stringify({user_id:userId, window:it.window}));
+    $('count').textContent = i;
+    await sleep(450);
+  }
+}
+
+$('start').onclick = async ()=>{
+  if(streaming) return;
+  await connect(); streaming=true; $('start').disabled=true; $('cal').disabled=false;
+  $('status').textContent = 'Streaming with the shared BASE model (never-seen user) — watch the error.';
+  loop();
+};
+
+$('cal').onclick = async ()=>{
+  if(calibrating) return; calibrating=true; $('cal').disabled=true;
+  const trials = data.items.filter(it=>it.trial<data.n_cal_trials)
+                           .map(it=>({window:it.window, gaze:it.gaze}));
+  $('status').textContent = `Calibrating on ${trials.length} of this user's trials (background job)…`;
+  const res = await fetch('/calibrate',{method:'POST',headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify({user_id:userId, trials})}).then(r=>r.json());
+  $('status').textContent = `Job ${res.job_id} queued — predictions will snap to the personal model when it lands…`;
+  // the stream keeps running; when the worker finishes, /predict starts returning model=personal
+};
+</script>
+</body>
+</html>

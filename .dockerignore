@@ -1,0 +1,13 @@
+# keep the build context small — none of this belongs in the service images
+.venv/
+data/
+models/
+notebooks/
+.github/
+.git/
+__pycache__/
+**/__pycache__/
+*.pyc
+*.ipynb
+*.md
+DriftLess_colab/

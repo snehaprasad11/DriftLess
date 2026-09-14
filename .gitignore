@@ -1,0 +1,27 @@
+# --- Python environment ---
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ipynb_checkpoints/
+
+# --- Secrets & config ---
+.env
+*.env
+!.env.example
+
+# --- Data (large + biometric — never commit) ---
+data/*
+!data/README.md
+
+# --- Trained models (large binaries — store in the registry, not git) ---
+*.pt
+*.pth
+*.ckpt
+*.onnx
+models/*.bin
+
+# --- OS / editor noise ---
+.DS_Store
+Thumbs.db
+*.log

@@ -1,0 +1,58 @@
+# DriftLess — the full stack, locally (Phase 5.4).
+#   redis      : the calibration job queue
+#   inference  : fast, stateless gaze prediction (host :8001)
+#   gateway    : the single front door (host :8000)
+#   worker     : consumes the queue, calibrates, writes personal models
+#
+# The ./models folder is mounted into inference + worker so the worker's new
+# personal models are immediately visible to inference (shared registry).
+#
+#   docker compose up --build          # start everything
+#   scale the worker (horizontal-scaling demo):
+#   docker compose up --build --scale worker=2
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  inference:
+    build:
+      context: .
+      dockerfile: inference/Dockerfile
+    environment:
+      MODELS_DIR: /app/models
+    volumes:
+      - ./models:/app/models
+    ports:
+      - "8001:8000"
+
+  gateway:
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
+    environment:
+      INFERENCE_URL: http://inference:8000
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - ./client:/app/client      # serve the live client (also baked into the image for deploy)
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+      - inference
+
+  worker:
+    build:
+      context: .
+      dockerfile: worker/Dockerfile
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      INFERENCE_URL: http://inference:8000
+      MODELS_DIR: /app/models
+    volumes:
+      - ./models:/app/models
+    depends_on:
+      - redis
+      - inference
