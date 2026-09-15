@@ -9,6 +9,7 @@ import os
 import numpy as np
 import torch
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import HTMLResponse
 
 from model.registry import ModelRegistry
 from model.windowing import apply_normaliser
@@ -25,6 +26,26 @@ def _get_model(user_id: str):
     if key not in _cache:
         _cache[key] = reg.load_model(user_id)
     return _cache[key]
+
+
+@app.get("/", response_class=HTMLResponse)
+def root():
+    """Friendly landing page so the bare URL shows the service is alive."""
+    return """<!doctype html><html><head><meta charset="utf-8">
+<title>DriftLess Inference API</title>
+<style>body{font-family:system-ui,sans-serif;max-width:640px;margin:56px auto;padding:0 20px;
+color:#1a2b32;line-height:1.6}code{background:#eef3f5;padding:2px 6px;border-radius:4px}
+a{color:#2a9d8f}h1{margin-bottom:4px}</style></head><body>
+<h1>&#128065; DriftLess &mdash; Inference API</h1>
+<p><b>Status: live.</b> Cloud auto-calibrating EOG gaze estimation.</p>
+<h3>Endpoints</h3>
+<ul>
+<li><code>GET</code> <a href="/health">/health</a> &mdash; service status</li>
+<li><code>POST</code> <code>/predict</code> &mdash; body <code>{"user_id": "...", "window": [[...],[...]]}</code>
+(a 2&times;320 EOG window) &rarr; <code>{"gaze": {"x","y"}, "blink", "model"}</code></li>
+</ul>
+<p>Project &amp; source: <a href="https://github.com/snehaprasad11/DriftLess">github.com/snehaprasad11/DriftLess</a></p>
+</body></html>"""
 
 
 @app.get("/health")
