@@ -102,6 +102,8 @@ function onMsg(ev){
   $('model').textContent = m.model;
   $('model').className = 'pill '+(m.model==='personal'?'personal':'base');
   calibrated = (m.model==='personal'); if(calibrated) calibrating=false;
+  if(calibrated && !window._done){ window._done=true; $('cal').textContent='✓ Personalized';
+    $('status').textContent='✅ Calibrated! Now serving YOUR personal model — the gaze error just dropped.'; }
   $('lat').textContent = m.latency_ms; lat.push(m.latency_ms); if(lat.length>30) lat.shift();
   const e = Math.hypot(m.gaze.x-truth.gaze[0], m.gaze.y-truth.gaze[1]);
   $('err').textContent = e.toFixed(2);
@@ -132,12 +134,13 @@ $('start').onclick = async ()=>{
 
 $('cal').onclick = async ()=>{
   if(calibrating) return; calibrating=true; $('cal').disabled=true;
+  $('cal').textContent = '⏳ Calibrating… (~30–45s)';
   const trials = data.items.filter(it=>it.trial<data.n_cal_trials)
                            .map(it=>({window:it.window, gaze:it.gaze}));
-  $('status').textContent = `Calibrating on ${trials.length} of this user's trials (background job)…`;
+  $('status').textContent = `Training YOUR personal model on ${trials.length} of your trials…`;
   const res = await fetch('/calibrate',{method:'POST',headers:{'Content-Type':'application/json'},
                     body:JSON.stringify({user_id:userId, trials})}).then(r=>r.json());
-  $('status').textContent = `Job ${res.job_id} queued — predictions will snap to the personal model when it lands…`;
+  $('status').textContent = `⏳ Personalizing (~30–45s on the free server)… watch the "Model serving" badge flip to green.`;
   // the stream keeps running; when the worker finishes, /predict starts returning model=personal
 };
 </script>
