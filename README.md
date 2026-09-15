@@ -2,6 +2,8 @@
 
 **Eye-controlled gaze tracking that personalises itself to each new user in seconds — running as a small cloud system.**
 
+> 🟢 **Live API:** https://driftless-inference.onrender.com — try [`/health`](https://driftless-inference.onrender.com/health) or `POST /predict`. *(Free tier: the first request after ~15 min idle wakes it in ~30–60 s; then it's fast.)*
+
 DriftLess reads eye movement from **EOG** (electrooculography — tiny voltage
 changes picked up by electrodes near the eyes, no camera needed) and predicts
 **where the eye looked**. It's built for hands-free interfaces (accessibility,
