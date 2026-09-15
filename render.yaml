@@ -17,6 +17,9 @@ services:
     plan: free
     healthCheckPath: /health
     autoDeploy: true
+    envVars:
+      - key: CAL_STEPS
+        value: "30"
 
   # The inference microservice on its own (the "serverless" piece).
   - type: web

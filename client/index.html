@@ -101,7 +101,7 @@ function onMsg(ev){
   const truth = pendingQ.shift(); if(!truth) return;
   $('model').textContent = m.model;
   $('model').className = 'pill '+(m.model==='personal'?'personal':'base');
-  calibrated = (m.model==='personal');
+  calibrated = (m.model==='personal'); if(calibrated) calibrating=false;
   $('lat').textContent = m.latency_ms; lat.push(m.latency_ms); if(lat.length>30) lat.shift();
   const e = Math.hypot(m.gaze.x-truth.gaze[0], m.gaze.y-truth.gaze[1]);
   $('err').textContent = e.toFixed(2);
@@ -119,7 +119,7 @@ async function loop(){
     pendingQ.push(it);
     ws.send(JSON.stringify({user_id:userId, window:it.window}));
     $('count').textContent = i;
-    await sleep(450);
+    await sleep(calibrating && !calibrated ? 2000 : 450);  // back off so a small CPU can calibrate
   }
 }
 

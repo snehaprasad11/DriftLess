@@ -24,6 +24,7 @@ from model.calibrate import calibrate
 from model.schemas import CalibrateRequest, CalibrateResponse
 
 reg = ModelRegistry(os.environ.get("MODELS_DIR", "models"))
+CAL_STEPS = int(os.environ.get("CAL_STEPS", "60"))  # fewer on tiny free CPUs
 app = FastAPI(title="DriftLess demo")
 _cache: dict = {}          # cache key -> (model, which)
 _calibrating: set = set()  # user_ids with a calibration in flight
@@ -55,7 +56,7 @@ def _run_calibration(user_id: str, trials: list):
         n = reg.norm
         Xn = apply_normaliser(X, n["in_mean"], n["in_std"]).astype(np.float32)
         gz = ((gaze - n["g_mean"]) / n["g_std"]).astype(np.float32)
-        state = calibrate(reg.base_state(), torch.from_numpy(Xn), torch.from_numpy(gz), steps=60)
+        state = calibrate(reg.base_state(), torch.from_numpy(Xn), torch.from_numpy(gz), steps=CAL_STEPS)
         reg.save_personal(user_id, state)
         _cache.pop(user_id, None)
         _cache.pop("__base__", None)   # so the next predict picks up the personal model
