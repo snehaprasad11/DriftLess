@@ -111,6 +111,11 @@ function onMsg(ev){
   (calibrated?ePers:eBase).push(e);
   draw(truth.gaze, m.gaze);
   refresh();
+  if(calibrated && ePers.length>=3){
+    const b=avg(eBase), p=avg(ePers);
+    if(b && p) $('status').textContent =
+      `✅ Personalized — avg gaze error ${b.toFixed(1)}° → ${p.toFixed(1)}°  (${Math.max(0,Math.round((b-p)/b*100))}% better)`;
+  }
 }
 
 const sleep = ms => new Promise(r=>setTimeout(r,ms));
