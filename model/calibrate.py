@@ -54,10 +54,15 @@ def calibrate(base_state: dict,
     opt = torch.optim.Adam(net.drift_adapter.parameters(), lr=lr, weight_decay=weight_decay)
 
     X, g = cal_X.to(device), cal_gaze.to(device)
+    # The backbone is frozen, so its features are CONSTANT across steps — compute
+    # them once and iterate only the tiny adapter. Same result, far less compute
+    # (crucial on small CPUs), since we no longer re-run the CNN+BiLSTM every step.
+    with torch.no_grad():
+        feat = net.backbone(X)
     for _ in range(steps):
         opt.zero_grad()
-        gaze_pred, _blink = net(X)
-        loss = F.mse_loss(gaze_pred, g)          # drift shows up in gaze; calibrate on gaze
+        gaze_pred = net.gaze_head(net.drift_adapter(feat))   # drift shows up in gaze
+        loss = F.mse_loss(gaze_pred, g)
         loss.backward()
         opt.step()
 
