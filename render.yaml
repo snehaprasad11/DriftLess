@@ -7,6 +7,18 @@
 # The image bakes in the base model (see inference/Dockerfile), so /predict works
 # with no extra setup. Endpoints once live:  GET /health   POST /predict
 services:
+  # The full visual demo (streaming client + inference + calibration in one service).
+  # Open its URL to SEE the project working — it redirects to /demo.
+  - type: web
+    name: driftless-demo
+    runtime: docker
+    dockerfilePath: ./demo/Dockerfile
+    dockerContext: .
+    plan: free
+    healthCheckPath: /health
+    autoDeploy: true
+
+  # The inference microservice on its own (the "serverless" piece).
   - type: web
     name: driftless-inference
     runtime: docker
