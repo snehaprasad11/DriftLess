@@ -9,6 +9,7 @@ RUN pip install --no-cache-dir -r worker/requirements.txt
 
 COPY model/ model/
 COPY worker/ worker/
+COPY models/ models/          # bake the base model in (no shared volume in serverless/k8s)
 
 ENV MODELS_DIR=/app/models
 CMD ["python", "worker/worker.py"]

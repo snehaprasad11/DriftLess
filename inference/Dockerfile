@@ -10,6 +10,7 @@ RUN pip install --no-cache-dir -r inference/requirements.txt
 
 COPY model/ model/
 COPY inference/ inference/
+COPY models/ models/          # bake the base model in (no shared volume in serverless)
 
 ENV MODELS_DIR=/app/models
 EXPOSE 8000

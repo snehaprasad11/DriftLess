@@ -1,0 +1,17 @@
+# Render Blueprint — deploys the DriftLess inference service as a public API.
+# On https://render.com:  New +  →  Blueprint  →  connect this GitHub repo.
+# Render reads this file and builds/deploys automatically. Free web services spin
+# down when idle and wake on the next request (Render's scale-to-zero equivalent) —
+# the first request after idle is the "cold start" to measure for the report.
+#
+# The image bakes in the base model (see inference/Dockerfile), so /predict works
+# with no extra setup. Endpoints once live:  GET /health   POST /predict
+services:
+  - type: web
+    name: driftless-inference
+    runtime: docker
+    dockerfilePath: ./inference/Dockerfile
+    dockerContext: .
+    plan: free
+    healthCheckPath: /health
+    autoDeploy: true

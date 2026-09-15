@@ -1,7 +1,6 @@
 # keep the build context small — none of this belongs in the service images
 .venv/
 data/
-models/
 notebooks/
 .github/
 .git/
