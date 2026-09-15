@@ -48,6 +48,7 @@
     <div style="margin-top:14px">
       <button id="start">▶ Start streaming</button>
       <button id="cal" class="sec" disabled>✦ Calibrate this user</button>
+      <button id="reset" class="sec">↻ New user</button>
     </div>
     <div class="status" id="status">Loading replay…</div>
   </div>
@@ -142,6 +143,21 @@ $('cal').onclick = async ()=>{
                     body:JSON.stringify({user_id:userId, trials})}).then(r=>r.json());
   $('status').textContent = `⏳ Personalizing (~30–45s on the free server)… watch the "Model serving" badge flip to green.`;
   // the stream keeps running; when the worker finishes, /predict starts returning model=personal
+};
+
+$('reset').onclick = ()=>{
+  streaming=false;                                          // stop the stream loop
+  if(ws){ try{ ws.close(); }catch(e){} ws=null; }
+  userId='demo_'+Math.random().toString(36).slice(2,8);     // a fresh never-seen user
+  calibrated=false; calibrating=false; window._done=false;
+  lat.length=0; eBase.length=0; ePers.length=0; pendingQ.length=0;
+  ['lat','avglat','err','errbase','errpers'].forEach(id=>$(id).textContent='—');
+  $('count').textContent='0';
+  $('model').textContent='—'; $('model').className='pill base';
+  $('cal').textContent='✦ Calibrate this user'; $('cal').disabled=true;
+  $('start').disabled=false;
+  grid();
+  $('status').textContent='Ready — press Start for a fresh never-seen user.';
 };
 </script>
 </body>
