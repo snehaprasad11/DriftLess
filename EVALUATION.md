@@ -45,7 +45,7 @@ See `RESULTS.md` §4.
 | Inference latency (cold start) | higher on the first request after idle (model load) — the scale-to-zero trade-off |
 | Serverless | inference is stateless + binds `$PORT` → deploys to Cloud Run/Render with **min-instances 0** (scale-to-zero) |
 | Async calibration | gateway never blocks: jobs go on a **Redis** queue; the worker consumes them (~seconds warm) |
-| Horizontal scaling | add workers under load — `docker compose up --scale worker=2`, or a Kubernetes **HPA** (see `DEPLOY.md`) |
+| Horizontal scaling | add workers under load — `docker compose up --scale worker=2`, or a Kubernetes **HPA**. **Verified live on Kubernetes:** 400 queued jobs drove worker CPU to 333%, and the HorizontalPodAutoscaler scaled the worker **1 → 4 pods** automatically (`k8s/hpa_demo_output.txt`) |
 | Reproducibility | pinned deps, `pytest` suite (16 tests), CI builds+tests every push |
 
 ## 3. Honest limitations

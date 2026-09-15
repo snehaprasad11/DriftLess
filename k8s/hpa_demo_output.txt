@@ -1,0 +1,21 @@
+=== DriftLess worker autoscaling (Kubernetes HPA) ===
+
+# The worker Deployment + HorizontalPodAutoscaler scaled 1 -> 4 pods under load.
+
+$ kubectl get hpa worker-hpa
+NAME         REFERENCE           TARGETS         MINPODS   MAXPODS   REPLICAS   AGE
+worker-hpa   Deployment/worker   cpu: 310%/50%   1         4         4          10h
+
+$ kubectl get pods -l app=worker
+NAME                      READY   STATUS    RESTARTS      AGE
+worker-54cdf5f967-2lmmj   1/1     Running   4 (10h ago)   10h
+worker-54cdf5f967-h6msg   1/1     Running   0             10h
+worker-54cdf5f967-pstbc   1/1     Running   0             10h
+worker-54cdf5f967-zw6pz   1/1     Running   0             10h
+
+$ kubectl top pods -l app=worker   (per-pod CPU)
+NAME                      CPU(cores)   MEMORY(bytes)   
+worker-54cdf5f967-2lmmj   822m         202Mi           
+worker-54cdf5f967-h6msg   1003m        202Mi           
+worker-54cdf5f967-pstbc   997m         203Mi           
+worker-54cdf5f967-zw6pz   898m         202Mi           
