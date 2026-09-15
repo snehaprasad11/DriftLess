@@ -157,5 +157,7 @@ pipeline that tests and builds on every push.
 
 ---
 
-*Dataset: UM Malta — EyeCon EOG (public research data). Built for the Advanced
-Cloud Computing course.*
+*Dataset: **UM Malta EyeCon EOG** (University of Malta, Centre for Biomedical
+Cybernetics) — 6 subjects, 256 Hz, horizontal + vertical EOG, saccades + blinks
+with target gaze angles. https://www.um.edu.mt/cbc/ourprojects/eyecon/eogdataset/
+Built for the Advanced Cloud Computing course.*
